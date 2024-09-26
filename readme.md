@@ -50,7 +50,7 @@ https://javarush.com/quests/lectures/jru.module3.lecture03
 ```
 Числа в таблице потом уберем и заменим их на крестик, нолик или пустое поле. Также внутри тега “head” подключи файл стилей.<br /> Для этого добавь строку: `<link href="static/main.css" rel="stylesheet">` <br />
 Содержимое файла стилей остается на твое усмотрение. Я использовал такой:
-```
+```css
 td {
 border: 3px solid black;
 padding: 10px;
@@ -65,3 +65,59 @@ empty-cells: show;
 ```
 После запуска у меня результат выглядит так: <br />
 ![](https://cdn.javarush.com/images/article/960b8e58-7f83-4a79-b7c0-a517bbbc1823/512.webp) 
+8. Теперь давай добавим такой функционал: при клике на ячейку, на сервер будет отправляться запрос, в котором параметром передадим индекс ячейки, по которой был произведен клик. Эту задачу можно разделить на две части: с фронта запрос отправить, на сервере запрос принять. Давай, ради разнообразия, начнем с фронта.
+   Давай каждому тегу “d” добавим параметр “onclick”. В значении укажем смену текущей страницы на указанный URL. Сервлет, который будет отвечать за логику, будет иметь URL “/logic”. И будет принимать параметр с названием “click”. Так будем передавать индекс ячейки, по которой кликнул пользователь. <br />
+ ```
+<table>
+    <tr>
+        <td onclick="window.location='/logic?click=0'">0</td>
+        <td onclick="window.location='/logic?click=1'">1</td>
+        <td onclick="window.location='/logic?click=2'">2</td>
+    </tr>
+    <tr>
+        <td onclick="window.location='/logic?click=3'">3</td>
+        <td onclick="window.location='/logic?click=4'">4</td>
+        <td onclick="window.location='/logic?click=5'">5</td>
+    </tr>
+    <tr>
+        <td onclick="window.location='/logic?click=6'">6</td>
+        <td onclick="window.location='/logic?click=7'">7</td>
+        <td onclick="window.location='/logic?click=8'">8</td>
+    </tr>
+</table>
+```
+Проверить, что все сделано правильно, можно через панель разработчика в браузере. Например, в Chrome она открывается по кнопке F12. В результате клика на ячейку с индексом 4 картина будет такая: <br />
+![](https://cdn.javarush.com/images/article/37b6d7b2-1f49-493c-b052-c8fb6bd63784/1080.webp) <br />
+Ошибку мы получаем потому, что сервлета, который может отдать сервер по адресу “logic”, мы еще не создали.
+9. В пакете “com.tictactoe” создай класс “LogicServlet”, который нужно унаследовать от класса “javax.servlet.http.HttpServlet”. В классе переопредели метод “doGet”.
+   И давай добавим метод, который будет получать индекс ячейки, по которой произошел клик. Также нужно добавить маппинг (адрес, по которому этот сервлет будет перехватывать запрос). Предлагаю это делать через аннотацию (но если любишь трудности – можно и через web.xml). Общий код сервлета:
+```java
+   
+package com.tictactoe;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+
+
+@WebServlet(name = "LogicServlet", value = "/logic")
+public class LogicServlet extends HttpServlet {
+    
+@Override
+protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    int index = getSelectedIndex(req);
+    resp.sendRedirect("/index.jsp");
+}
+
+private int getSelectedIndex(HttpServletRequest request) {
+    String click = request.getParameter("click");
+    boolean isNumeric = click.chars().allMatch(Character::isDigit);
+    return isNumeric ? Integer.parseInt(click) : 0;
+    }
+
+}
+```
+Теперь, при клике по любой ячейке, мы будем на сервере получать индекс этой ячейки (можно убедиться, запустив сервер в дебаге). И будет происходить редирект на эту же страницу, с которой был произведен клик.
