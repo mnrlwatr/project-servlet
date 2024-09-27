@@ -88,7 +88,7 @@ empty-cells: show;
 ```
 Проверить, что все сделано правильно, можно через панель разработчика в браузере. Например, в Chrome она открывается по кнопке F12. В результате клика на ячейку с индексом 4 картина будет такая: <br />
 ![](https://cdn.javarush.com/images/article/37b6d7b2-1f49-493c-b052-c8fb6bd63784/1080.webp) <br />
-Ошибку мы получаем потому, что сервлета, который может отдать сервер по адресу “logic”, мы еще не создали.
+Ошибку мы получаем потому, что сервлета, который может отдать сервер по адресу “logic”, мы еще не создали. <br />
 9. В пакете “com.tictactoe” создай класс “LogicServlet”, который нужно унаследовать от класса “javax.servlet.http.HttpServlet”. В классе переопредели метод “doGet”.
    И давай добавим метод, который будет получать индекс ячейки, по которой произошел клик. Также нужно добавить маппинг (адрес, по которому этот сервлет будет перехватывать запрос). Предлагаю это делать через аннотацию (но если любишь трудности – можно и через web.xml). Общий код сервлета:
 ```java
@@ -120,4 +120,48 @@ private int getSelectedIndex(HttpServletRequest request) {
 
 }
 ```
-Теперь, при клике по любой ячейке, мы будем на сервере получать индекс этой ячейки (можно убедиться, запустив сервер в дебаге). И будет происходить редирект на эту же страницу, с которой был произведен клик.
+Теперь, при клике по любой ячейке, мы будем на сервере получать индекс этой ячейки (можно убедиться, запустив сервер в дебаге). И будет происходить редирект на эту же страницу, с которой был произведен клик.<br /> 
+10. Теперь мы можем кликать, но это еще не игра. Для того, чтоб игра имела логику, нужно сохранять состояние игры (где стоят крестики, где нолики) между запросами. Самый простой метод это сделать – сохранять эти данные в сессии. При таком подходе сессия будет храниться на сервере, а клиент получит идентификатор сессии в куке с именем “JSESSIONID”. Но сессию не нужно создавать каждый раз, а только в начале игры. Давай для этого заведем еще один сервлет, который назовем “InitServlet”. В нем переопределим метод “doGet”, в котором создадим новую сессию, создадим игровое поле, положим это игровое поле и список типа Sign в атрибуты сессии, и отправим “forward” на страницу index.jsp. Код: <br /> 
+```java
+
+package com.tictactoe;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+
+@WebServlet(name = "InitServlet", value = "/start")
+public class InitServlet extends HttpServlet {
+    
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        // Создание новой сессии
+        HttpSession currentSession = req.getSession(true);
+
+        // Создание игрового поля
+        Field field = new Field();
+        Map<Integer, Sign> fieldData = field.getField();
+
+        // Получение списка значений поля
+        List<Sign> data = field.getFieldData();
+
+        // Добавление в сессию параметров поля (нужно будет для хранения состояния между запросами)
+        currentSession.setAttribute("field", field);
+        // и значений поля, отсортированных по индексу (нужно для отрисовки крестиков и ноликов)
+        currentSession.setAttribute("data", data);
+
+        // Перенаправление запроса на страницу index.jsp через сервер
+        getServletContext().getRequestDispatcher("/index.jsp").forward(req, resp);
+    }
+}
+``` 
+И чтоб не забыть, давай стартовую страницу, которая открывается в браузере после запуска сервера, сменим на “/start”: <br />
+![](https://cdn.javarush.com/images/article/b2ad55cf-7d01-4938-a468-e1f647fb6238/800.webp) <br />
+Теперь после перезапуска сервера и клика по любой ячейке поля в меню разработчика браузера в секции “Request Headers” будет присутствовать кука с идентификатором сессии: <br />
+![](https://cdn.javarush.com/images/article/ca94ddd6-cc0f-4356-a0c3-c8985d64587d/1080.webp)
