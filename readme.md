@@ -164,4 +164,49 @@ public class InitServlet extends HttpServlet {
 И чтоб не забыть, давай стартовую страницу, которая открывается в браузере после запуска сервера, сменим на “/start”: <br />
 ![](https://cdn.javarush.com/images/article/b2ad55cf-7d01-4938-a468-e1f647fb6238/800.webp) <br />
 Теперь после перезапуска сервера и клика по любой ячейке поля в меню разработчика браузера в секции “Request Headers” будет присутствовать кука с идентификатором сессии: <br />
-![](https://cdn.javarush.com/images/article/ca94ddd6-cc0f-4356-a0c3-c8985d64587d/1080.webp)
+![](https://cdn.javarush.com/images/article/ca94ddd6-cc0f-4356-a0c3-c8985d64587d/1080.webp) <br />
+11. Когда у нас появилось хранилище, в котором мы можем хранить состояние между запросами с клиента (браузера), можно начинать писать логику игры. Логика у нас находится в “LogicServlet”. Работать нам нужно с методом “doGet”. Давай в метод добавим такое поведение:
+    - получим объект “field” типа Field из сессии (вынесем в метод “extractField”).
+    - поставим крестик там, где кликнул пользователь (пока что без каких-либо проверок). <br />
+```java
+
+@Override
+protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    // Получаем текущую сессию
+    HttpSession currentSession = req.getSession();
+
+    // Получаем объект игрового поля из сессии
+    Field field = extractField(currentSession);
+
+    // получаем индекс ячейки, по которой произошел клик
+    int index = getSelectedIndex(req);
+
+    // ставим крестик в ячейке, по которой кликнул пользователь
+    field.getField().put(index, Sign.CROSS);
+
+    // Считаем список значков
+    List<Sign> data = field.getFieldData();
+
+    // Обновляем объект поля и список значков в сессии
+    currentSession.setAttribute("data", data);
+    currentSession.setAttribute("field", field);
+
+    resp.sendRedirect("/index.jsp");
+}
+
+
+
+private Field extractField(HttpSession currentSession) {
+    Object fieldAttribute = currentSession.getAttribute("field");
+    if (Field.class != fieldAttribute.getClass()) {
+        currentSession.invalidate();
+        throw new RuntimeException("Session is broken, try one more time");
+    }
+    return (Field) fieldAttribute;
+}
+```
+Поведение пока не изменилось, но если запустить сервер в дебаге и поставить брейкпоинт на строке, где шлется редирект, можно посмотреть “внутренности” объекта “data”. Там действительно появляется “CROSS” под индексом, по котором был клик. <br />
+12. Теперь время отобразить крестик на фронтенде. Для этого поработаем с файлом “index.jsp” и технологией “JSTL”.
+    - В секции <head> добавим:`<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>`
+    - В таблице внутри каждого блока <td> поменяем индекс на конструкцию, которая позволяет вычислять значения. Например, для индекса ноль: `<td onclick="window.location='/logic?click=0'">${data.get(0).getSign()}</td>` Теперь при клике на ячейку там будет появляться крестик: <br />
+      ![](https://cdn.javarush.com/images/article/190bd8aa-8c1b-495c-8aaf-2a595e42058c/512.webp) <br />
