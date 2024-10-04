@@ -65,4 +65,27 @@ public class LogicServlet extends HttpServlet {
         }
         return (Field) fieldAttribute;
     }
+
+    /**
+     * Метод проверяет, нет ли трех крестиков/ноликов в ряд.
+     * Возвращает true/false
+     */
+    private boolean checkWin(HttpServletResponse response, HttpSession currentSession, Field field) throws IOException {
+        Sign winner = field.checkWin();
+        if (Sign.CROSS == winner || Sign.NOUGHT == winner) {
+            // Добавляем флаг, который показывает что кто-то победил
+            currentSession.setAttribute("winner", winner);
+
+            // Считаем список значков
+            List<Sign> data = field.getFieldData();
+
+            // Обновляем этот список в сессии
+            currentSession.setAttribute("data", data);
+
+            // Шлем редирект
+            response.sendRedirect("/index.jsp");
+            return true;
+        }
+        return false;
+    }
 }
