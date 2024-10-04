@@ -34,11 +34,20 @@ public class LogicServlet extends HttpServlet {
         // ставим крестик в ячейке, по которой кликнул пользователь
         field.getField().put(index, Sign.CROSS);
 
+        // Проверяем, не победил ли крестик после добавления последнего клика пользователя
+        if (checkWin(resp, currentSession, field)) {
+            return;
+        }
+
         // Получаем пустую ячейку поля
         int emptyFieldIndex = field.getEmptyFieldIndex();
 
         if (emptyFieldIndex >= 0) {
             field.getField().put(emptyFieldIndex, Sign.NOUGHT);
+            // Проверяем, не победил ли нолик после добавление последнего нолика
+            if (checkWin(resp, currentSession, field)) {
+                return;
+            }
         }
 
         // Считаем список значков
