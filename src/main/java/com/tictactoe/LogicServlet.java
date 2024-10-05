@@ -49,6 +49,21 @@ public class LogicServlet extends HttpServlet {
                 return;
             }
         }
+        // Если пустой ячейки нет и никто не победил - значит это ничья
+        else {
+            // Добавляем в сессию флаг, который сигнализирует что произошла ничья
+            currentSession.setAttribute("draw", true);
+
+            // Считаем список значков
+            List<Sign> data = field.getFieldData();
+
+            // Обновляем этот список в сессии
+            currentSession.setAttribute("data", data);
+
+            // Шлем редирект
+            resp.sendRedirect("/index.jsp");
+            return;
+        }
 
         // Считаем список значков
         List<Sign> data = field.getFieldData();
